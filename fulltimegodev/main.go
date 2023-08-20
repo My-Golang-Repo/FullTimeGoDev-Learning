@@ -2,60 +2,26 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"sync"
 )
 
-type Server struct {
-	quitch chan struct{}
-	msgch  chan string
+type State struct {
+	mu    sync.Mutex
+	count int
 }
 
-func newServer() *Server {
-	return &Server{
-		quitch: make(chan struct{}),
-		msgch:  make(chan string, 128),
-	}
-}
-
-func (s *Server) start() {
-	fmt.Println("Server starting")
-	s.loop()
-}
-
-func (s *Server) loop() {
-mainloop:
-	for {
-		select {
-		case <-s.quitch:
-			fmt.Println("Quitting server")
-			break mainloop
-		case msg := <-s.msgch:
-			s.handleMessage(msg)
-		default:
-		}
-	}
-	fmt.Println("Server is shutting down gracefully")
-}
-
-func (s *Server) sendMessage(msg string) {
-	s.msgch <- msg
-}
-
-func (s *Server) handleMessage(msg string) {
-	fmt.Println("We receive a message:", msg)
-}
-
-func (s *Server) quit() {
-	s.quitch <- struct{}{}
+func (s *State) setState(i int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.count = i
 }
 
 func main() {
-	server := newServer()
+	state := &State{}
 
-	go func() {
-		time.Sleep(time.Second * 5)
-		server.quit()
-	}()
+	for i := 0; i < 10; i++ {
+		state.count = i
+	}
 
-	server.start()
+	fmt.Println(state)
 }
