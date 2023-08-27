@@ -1,3 +1,3 @@
 package db
 
-const DBNAME = "hotel_reservation"
+const DBNAME = "hotel-reservation"
