@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	userHandler := api.NewUserHandler(db.NewMongoUserStore(client))
+	userHandler := api.NewUserHandler(db.NewMongoUserStore(client, db.DBNAME))
 
 	listenAddr := flag.String("listenAddr", ":5000", "The listen Address of API server")
 	flag.Parse()
