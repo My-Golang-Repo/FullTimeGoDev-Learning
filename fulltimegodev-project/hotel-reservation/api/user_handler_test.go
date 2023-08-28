@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 )
@@ -186,4 +187,40 @@ func TestGetUsers(t *testing.T) {
 			t.Errorf("expecting first name %s but got %s", expected.Email, retrievedUsers[i].Email)
 		}
 	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	tdb := setup(t)
+	defer tdb.teardown(t)
+
+	app := fiber.New()
+	userHandler := NewUserHandler(tdb)
+	app.Delete("/user/:id", userHandler.HandleDeleteUser)
+
+	expectedUser := types.User{
+		ID:                primitive.NewObjectID(),
+		FirstName:         "Medalusa",
+		LastName:          "QIU",
+		Email:             "medalusa@gatlantis.org",
+		EncryptedPassword: "zorderalliance",
+	}
+
+	insertedUser, err := tdb.InsertUser(context.TODO(), &expectedUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/user/%s", insertedUser.ID.Hex()), nil)
+	req.Header.Add("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expecting status code %d but got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	retrievedUser, err := tdb.GetUserByID(context.TODO(), insertedUser.ID.Hex())
+	if err != mongo.ErrNoDocuments {
+		t.Errorf("Expecting user to be deleted, but %+v user is retrieved", retrievedUser)
+	}
+
 }
