@@ -222,5 +222,53 @@ func TestDeleteUser(t *testing.T) {
 	if err != mongo.ErrNoDocuments {
 		t.Errorf("Expecting user to be deleted, but %+v user is retrieved", retrievedUser)
 	}
+}
 
+func TestUpdateUser(t *testing.T) {
+	tdb := setup(t)
+	defer tdb.teardown(t)
+
+	app := fiber.New()
+	userHandler := NewUserHandler(tdb)
+	app.Put("/user/:id", userHandler.HandlePutUser)
+
+	initialUser := types.User{
+		ID:                primitive.NewObjectID(),
+		FirstName:         "Andromeda",
+		LastName:          "AAA-0001-2202",
+		Email:             "andromeda@uncf.org",
+		EncryptedPassword: "advancedartilleryarmament",
+	}
+
+	_, err := tdb.InsertUser(context.TODO(), &initialUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	params := types.UpdateUserParam{
+		FirstName: "Andromeda Kai",
+		LastName:  "ZZZ-0001-YF-2203",
+	}
+
+	b, _ := json.Marshal(params)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/user/%s", initialUser.ID.Hex()), bytes.NewReader(b))
+	req.Header.Add("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expecting %d status code but got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	updatedUser, err := tdb.GetUserByID(context.TODO(), initialUser.ID.Hex())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if updatedUser.FirstName != params.FirstName {
+		t.Errorf("Expecting %s but got %s", updatedUser.FirstName, params.FirstName)
+	}
+
+	if updatedUser.LastName != params.LastName {
+		t.Errorf("Expecting %s but got %s", updatedUser.LastName, params.LastName)
+	}
 }
