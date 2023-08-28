@@ -18,6 +18,7 @@ func main() {
 	}
 
 	hotelStore := db.NewMongoHotelStore(client, db.DBNAME)
+	roomStore := db.NewMongoRoomStore(client, db.DBNAME)
 
 	hotel := types.Hotel{
 		Name:    "Saturn",
@@ -33,7 +34,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	insertedRoom, err := roomStore.InsertRoom(ctx, &room)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	room.ID = insertedHotel.ID
 
 	fmt.Println(insertedHotel)
+	fmt.Println(insertedRoom)
 }
