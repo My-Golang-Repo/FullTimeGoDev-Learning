@@ -12,15 +12,17 @@ import (
 )
 
 var (
+	client     *mongo.Client
 	roomStore  db.RoomStore
 	hotelStore db.HotelStore
 	ctx        = context.Background()
 )
 
 func main() {
-	seedHotel("UNCF Hotel", "Japan")
-	seedHotel("Yamato Hotel", "Iscandar")
-	seedHotel("Andromeda", "Saturn")
+	seedHotel("UNCF Hotel", "Japan", 5)
+	seedHotel("Yamato Hotel", "Iscandar", 5)
+	seedHotel("Andromeda", "Saturn", 5)
+
 }
 
 func init() {
@@ -37,11 +39,12 @@ func init() {
 	roomStore = db.NewMongoRoomStore(client, hotelStore)
 }
 
-func seedHotel(name, address string) {
+func seedHotel(name string, address string, rating int) {
 	hotel := types.Hotel{
 		Name:    name,
 		Address: address,
 		Rooms:   []primitive.ObjectID{},
+		Rating:  rating,
 	}
 
 	rooms := []types.Room{
@@ -59,7 +62,7 @@ func seedHotel(name, address string) {
 		},
 	}
 
-	insertedHotel, err := hotelStore.InsertHotel(ctx, &hotel)
+	insertedHotel, err := hotelStore.Insert(ctx, &hotel)
 	if err != nil {
 		log.Fatal(err)
 	}
