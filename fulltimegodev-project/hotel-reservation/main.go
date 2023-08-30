@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"github.com/fulltimegodev/hotel-reservation-nana/api"
+	"github.com/fulltimegodev/hotel-reservation-nana/api/middleware"
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,13 +38,19 @@ func main() {
 
 		userHandler  = api.NewUserHandler(userStore)
 		hotelHandler = api.NewHotelHandler(store)
+		authHandler  = api.NewAuthHandler(userStore)
 		app          = fiber.New(config)
-		apiv1        = app.Group("/api/v1")
+		auth         = app.Group("/api")
+		apiv1        = app.Group("/api/v1", middleware.JWTAuthentication)
 	)
 
 	listenAddr := flag.String("listenAddr", ":5000", "The listen Address of API server")
 	flag.Parse()
 
+	// auth handler
+	auth.Post("/auth", authHandler.HandleAuthenticate)
+
+	// Versioned API Routes
 	// user handlers
 	apiv1.Post("/user", userHandler.HandlePostUser)
 	apiv1.Get("/user", userHandler.HandleGetUsers)
