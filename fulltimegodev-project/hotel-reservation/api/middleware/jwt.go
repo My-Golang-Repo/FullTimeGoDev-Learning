@@ -5,26 +5,30 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"os"
+	"time"
 )
 
 func JWTAuthentication(c *fiber.Ctx) error {
-	fmt.Println("--- JWT ---")
-
 	token, ok := c.GetReqHeaders()["X-Api-Token"]
 	if !ok {
 		return fmt.Errorf("unauthorized")
 	}
-
-	if err := parseToken(token); err != nil {
+	claims, err := validateToken(token)
+	if err != nil {
 		return err
 	}
 
-	fmt.Println("token :", token)
+	expiresFloat := claims["expires"].(float64)
+	expires := int64(expiresFloat)
 
-	return nil
+	if time.Now().Unix() > expires {
+		return fmt.Errorf("token expired")
+	}
+
+	return c.Next()
 }
 
-func parseToken(tokenStr string) error {
+func validateToken(tokenStr string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -32,19 +36,25 @@ func parseToken(tokenStr string) error {
 			return nil, fmt.Errorf("unauthorized")
 		}
 		secret := os.Getenv("JWT_SECRET")
-		fmt.Println("NEVER PRINT YOUR SECRET")
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(secret), nil
 	})
 
 	if err != nil {
 		fmt.Println("failed to parse JWT token:", err)
-		return fmt.Errorf("unauthorized")
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println(claims)
+	if !token.Valid {
+		fmt.Println("Invalid token")
+		return nil, fmt.Errorf("Token is invalid")
 	}
 
-	return fmt.Errorf("unauthorized")
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	return claims, nil
 }
