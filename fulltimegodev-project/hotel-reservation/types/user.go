@@ -81,3 +81,7 @@ func isValid(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }
+
+func IsValidPassword(encpw, pw string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(encpw), []byte(pw)) == nil
+}
