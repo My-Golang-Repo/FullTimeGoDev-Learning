@@ -2,30 +2,42 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"time"
 )
 
-func JWTAuthentication(c *fiber.Ctx) error {
-	token, ok := c.GetReqHeaders()["X-Api-Token"]
-	if !ok {
-		return fmt.Errorf("unauthorized")
-	}
-	claims, err := validateToken(token)
-	if err != nil {
-		return err
-	}
+func JWTAuthentication(userStore db.UserStore) fiber.Handler {
+	return func(c *fiber.Ctx) error {
 
-	expiresFloat := claims["expires"].(float64)
-	expires := int64(expiresFloat)
+		token, ok := c.GetReqHeaders()["X-Api-Token"]
+		if !ok {
+			return fmt.Errorf("unauthorized")
+		}
+		claims, err := validateToken(token)
+		if err != nil {
+			return err
+		}
+		// Check token expiration
+		expiresFloat := claims["expires"].(float64)
+		expires := int64(expiresFloat)
 
-	if time.Now().Unix() > expires {
-		return fmt.Errorf("token expired")
+		if time.Now().Unix() > expires {
+			return fmt.Errorf("token expired")
+		}
+
+		userID := claims["id"].(string)
+		user, err := userStore.GetUserByID(c.Context(), userID)
+		if err != nil {
+			return fmt.Errorf("unauthorized")
+		}
+		// Set the current authenticated user to the context value
+		c.Context().SetUserValue("user", user)
+
+		return c.Next()
 	}
-
-	return c.Next()
 }
 
 func validateToken(tokenStr string) (jwt.MapClaims, error) {
