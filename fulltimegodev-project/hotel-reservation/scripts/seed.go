@@ -23,20 +23,23 @@ func main() {
 	seedHotel("UNCF Hotel", "Japan", 5)
 	seedHotel("Yamato Hotel", "Iscandar", 5)
 	seedHotel("Andromeda", "Saturn", 5)
-	seedUser("andromeda@uncf.org", "Andromeda", "aaa0001")
+	seedUser(true, "admin@uncf.org", "admin", "uncf", "admin")
+	seedUser(false, "achilles@uncf.org", "Achilles", "AAA-0004", "supersecurepassword")
 }
 
-func seedUser(email, fname, lname string) {
+func seedUser(isAdmin bool, email, fname, lname, password string) {
 	user, err := types.NewUserFromParams(types.CreateUserParam{
 		FirstName: fname,
 		LastName:  lname,
 		Email:     email,
-		Password:  "supersecurepassword",
+		Password:  password,
 	})
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	user.IsAdmin = isAdmin
 
 	_, err = userStore.InsertUser(ctx, user)
 	if err != nil {
