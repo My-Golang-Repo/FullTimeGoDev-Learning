@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/fulltimegodev/hotel-reservation-nana/db"
-	"github.com/fulltimegodev/hotel-reservation-nana/types"
+	"github.com/fulltimegodev/hotel-reservation-nana/db/fixtures"
 	"github.com/gofiber/fiber/v2"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -18,39 +16,18 @@ var (
 	ctx = context.Background()
 )
 
-func insertUserTest(t *testing.T, store db.UserStore) *types.User {
-
-	user, err := types.NewUserFromParams(types.CreateUserParam{
-		FirstName: "Antares",
-		LastName:  "AAA-0005",
-		Email:     "antares@uncf.org",
-		Password:  "supersecurepassword",
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = store.InsertUser(ctx, user)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return user
-}
-
 func TestAuthenticateSuccess(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.teardown(t)
-	insertedUser := insertUserTest(t, tdb)
+	insertedUser := fixtures.AddUser(tdb.store, "antares", "aaa0005", false)
 
 	app := fiber.New()
-	authHandler := NewAuthHandler(tdb)
+	authHandler := NewAuthHandler(tdb.store.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
-		Email:    "antares@uncf.org",
-		Password: "supersecurepassword",
+		Email:    "antares@aaa0005.com",
+		Password: "antares_aaa0005",
 	}
 
 	b, _ := json.Marshal(params)
@@ -81,9 +58,10 @@ func TestAuthenticateSuccess(t *testing.T) {
 func TestAuthenticateWithWrongPassword(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.teardown(t)
+	fixtures.AddUser(tdb.store, "antares", "aaa0005", false)
 
 	app := fiber.New()
-	authHandler := NewAuthHandler(tdb)
+	authHandler := NewAuthHandler(tdb.store.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
