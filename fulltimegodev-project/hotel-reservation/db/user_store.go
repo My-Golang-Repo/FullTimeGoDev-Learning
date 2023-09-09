@@ -21,7 +21,7 @@ type UserStore interface {
 	GetUserByEmail(context.Context, string) (*types.User, error)
 	GetUsers(context.Context) ([]*types.User, error)
 	InsertUser(context.Context, *types.User) (*types.User, error)
-	UpdateUser(context.Context, bson.M, types.UpdateUserParam) error
+	UpdateUser(context.Context, string, types.UpdateUserParam) error
 	DeleteUser(context.Context, string) error
 }
 
@@ -97,9 +97,13 @@ func (s *MongoUserStore) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MongoUserStore) UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParam) error {
-	update := bson.M{"$set": params}
-	_, err := s.coll.UpdateOne(ctx, filter, update)
+func (s *MongoUserStore) UpdateUser(ctx context.Context, id string, params types.UpdateUserParam) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	update := bson.M{"$set": bson.M{"firstName": params.FirstName, "lastName": params.LastName}}
+	_, err = s.coll.UpdateByID(ctx, oid, update)
 	if err != nil {
 		return err
 	}
