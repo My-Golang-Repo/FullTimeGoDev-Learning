@@ -5,38 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/fulltimegodev/hotel-reservation-nana/types"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
-
-type testdb struct {
-	db.UserStore
-}
-
-func (tdb *testdb) teardown(t *testing.T) {
-	if err := tdb.UserStore.Drop(context.TODO()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func setup(t *testing.T) *testdb {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return &testdb{
-		UserStore: db.NewMongoUserStore(client),
-	}
-}
 
 func TestPostUser(t *testing.T) {
 	tdb := setup(t)
@@ -44,7 +20,7 @@ func TestPostUser(t *testing.T) {
 
 	app := fiber.New()
 
-	userHandler := NewUserHandler(tdb)
+	userHandler := NewUserHandler(tdb.store.User)
 
 	app.Post("/", userHandler.HandlePostUser)
 
@@ -84,7 +60,7 @@ func TestGetUserById(t *testing.T) {
 	defer tdb.teardown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb)
+	userHandler := NewUserHandler(tdb.store.User)
 	app.Get("/user/:id", userHandler.HandleGetUser)
 
 	expectedUser := types.User{
@@ -95,7 +71,7 @@ func TestGetUserById(t *testing.T) {
 		EncryptedPassword: "advancedartilleryarmament",
 	}
 
-	insertedUser, err := tdb.InsertUser(context.TODO(), &expectedUser)
+	insertedUser, err := tdb.store.User.InsertUser(context.TODO(), &expectedUser)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +105,7 @@ func TestGetUsers(t *testing.T) {
 	defer tdb.teardown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb)
+	userHandler := NewUserHandler(tdb.store.User)
 	app.Get("/user", userHandler.HandleGetUsers)
 
 	expectedUser := []types.User{
@@ -150,7 +126,7 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	for _, user := range expectedUser {
-		_, err := tdb.InsertUser(context.TODO(), &user)
+		_, err := tdb.store.User.InsertUser(context.TODO(), &user)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,7 +167,7 @@ func TestDeleteUser(t *testing.T) {
 	defer tdb.teardown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb)
+	userHandler := NewUserHandler(tdb.store.User)
 	app.Delete("/user/:id", userHandler.HandleDeleteUser)
 
 	expectedUser := types.User{
@@ -202,7 +178,7 @@ func TestDeleteUser(t *testing.T) {
 		EncryptedPassword: "zorderalliance",
 	}
 
-	insertedUser, err := tdb.InsertUser(context.TODO(), &expectedUser)
+	insertedUser, err := tdb.store.User.InsertUser(context.TODO(), &expectedUser)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +191,7 @@ func TestDeleteUser(t *testing.T) {
 		t.Errorf("Expecting status code %d but got %d", http.StatusOK, resp.StatusCode)
 	}
 
-	retrievedUser, err := tdb.GetUserByID(context.TODO(), insertedUser.ID.Hex())
+	retrievedUser, err := tdb.store.User.GetUserByID(context.TODO(), insertedUser.ID.Hex())
 	if err != mongo.ErrNoDocuments {
 		t.Errorf("Expecting user to be deleted, but %+v user is retrieved", retrievedUser)
 	}
@@ -226,7 +202,7 @@ func TestUpdateUser(t *testing.T) {
 	defer tdb.teardown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb)
+	userHandler := NewUserHandler(tdb.store.User)
 	app.Put("/user/:id", userHandler.HandlePutUser)
 
 	initialUser := types.User{
@@ -237,7 +213,7 @@ func TestUpdateUser(t *testing.T) {
 		EncryptedPassword: "advancedartilleryarmament",
 	}
 
-	_, err := tdb.InsertUser(context.TODO(), &initialUser)
+	_, err := tdb.store.User.InsertUser(context.TODO(), &initialUser)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +232,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Errorf("Expecting %d status code but got %d", http.StatusOK, resp.StatusCode)
 	}
 
-	updatedUser, err := tdb.GetUserByID(context.TODO(), initialUser.ID.Hex())
+	updatedUser, err := tdb.store.User.GetUserByID(context.TODO(), initialUser.ID.Hex())
 	if err != nil {
 		t.Fatal(err)
 	}
