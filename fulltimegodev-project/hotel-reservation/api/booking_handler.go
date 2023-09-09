@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
-	"github.com/fulltimegodev/hotel-reservation-nana/types"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
@@ -34,8 +33,8 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 		return err
 	}
 
-	user, ok := c.Context().UserValue("user").(*types.User)
-	if !ok {
+	user, err := getAuthUser(c)
+	if err != nil {
 		return err
 	}
 
@@ -46,4 +45,32 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 		})
 	}
 	return c.JSON(booking)
+}
+
+func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
+	id := c.Params("id")
+	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	user, err := getAuthUser(c)
+	if err != nil {
+		return err
+	}
+
+	if booking.UserID != user.ID {
+		return c.Status(http.StatusUnauthorized).JSON(genericResp{
+			Type:    "error",
+			Message: "unauthorized",
+		})
+	}
+
+	if err := h.store.Booking.UpdateBooking(c.Context(), id, bson.M{"canceled": true}); err != nil {
+		return err
+	}
+	return c.JSON(genericResp{
+		Type:    "msg",
+		Message: "room is canceled",
+	})
 }
