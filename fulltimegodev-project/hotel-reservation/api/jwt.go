@@ -1,10 +1,11 @@
-package middleware
+package api
 
 import (
 	"fmt"
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"net/http"
 	"os"
 	"time"
 )
@@ -14,7 +15,7 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 
 		token, ok := c.GetReqHeaders()["X-Api-Token"]
 		if !ok {
-			return fmt.Errorf("unauthorized")
+			return ErrUnAuthorized()
 		}
 		claims, err := validateToken(token)
 		if err != nil {
@@ -25,13 +26,13 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 		expires := int64(expiresFloat)
 
 		if time.Now().Unix() > expires {
-			return fmt.Errorf("token expired")
+			return NewError(http.StatusUnauthorized, "token is expired")
 		}
 
 		userID := claims["id"].(string)
 		user, err := userStore.GetUserByID(c.Context(), userID)
 		if err != nil {
-			return fmt.Errorf("unauthorized")
+			return ErrUnAuthorized()
 		}
 		// Set the current authenticated user to the context value
 		c.Context().SetUserValue("user", user)
@@ -45,7 +46,7 @@ func validateToken(tokenStr string) (jwt.MapClaims, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			fmt.Println("invalid signing method", token.Header["alg"])
-			return nil, fmt.Errorf("unauthorized")
+			return nil, ErrUnAuthorized()
 		}
 		secret := os.Getenv("JWT_SECRET")
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -54,18 +55,18 @@ func validateToken(tokenStr string) (jwt.MapClaims, error) {
 
 	if err != nil {
 		fmt.Println("failed to parse JWT token:", err)
-		return nil, fmt.Errorf("unauthorized")
+		return nil, ErrUnAuthorized()
 	}
 
 	if !token.Valid {
 		fmt.Println("Invalid token")
-		return nil, fmt.Errorf("Token is invalid")
+		return nil, ErrUnAuthorized()
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
 	if !ok {
-		return nil, fmt.Errorf("Unauthorized")
+		return nil, ErrUnAuthorized()
 	}
 
 	return claims, nil
