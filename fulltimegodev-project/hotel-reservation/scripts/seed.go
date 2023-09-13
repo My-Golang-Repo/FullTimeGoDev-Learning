@@ -6,9 +6,11 @@ import (
 	"github.com/fulltimegodev/hotel-reservation-nana/api"
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/fulltimegodev/hotel-reservation-nana/db/fixtures"
+	"github.com/go-faker/faker/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"math/rand"
 	"time"
 )
 
@@ -39,5 +41,11 @@ func main() {
 	room := fixtures.AddRoom(store, "kingsize", true, 99.99, hotel.ID)
 	booking := fixtures.AddBooking(store, user.ID, room.ID, time.Now(), time.Now().AddDate(0, 0, 2), 2)
 	fmt.Println("booking ID ->", booking.ID)
+
+	for i := 0; i < 100; i++ {
+		addressLoc := fmt.Sprintf("addres %d", i)
+		rating := rand.Intn(5) + 1
+		fixtures.AddHotel(store, faker.FirstName(), addressLoc, rating, nil)
+	}
 	return
 }
