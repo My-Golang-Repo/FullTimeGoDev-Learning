@@ -35,7 +35,7 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 	users, err := h.userStore.GetUsers(c.Context())
 	if err != nil {
-		return err
+		return ErrResourceNotFound("user")
 	}
 	return c.JSON(users)
 }
@@ -43,7 +43,7 @@ func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	var params types.CreateUserParam
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return ErrBadRequest()
 	}
 
 	if errors := params.Validate(); len(errors) > 0 {
@@ -70,10 +70,11 @@ func (h *UserHandler) HandlePutUser(c *fiber.Ctx) error {
 	)
 
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return ErrBadRequest()
 	}
 
-	if err := h.userStore.UpdateUser(c.Context(), userID, params); err != nil {
+	filter := db.Map{"_id": userID}
+	if err := h.userStore.UpdateUser(c.Context(), filter, params); err != nil {
 		return err
 	}
 	return c.JSON(map[string]string{"updated": userID})
