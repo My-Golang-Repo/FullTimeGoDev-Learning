@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fulltimegodev/hotel-reservation-nana/api/middleware"
 	"github.com/fulltimegodev/hotel-reservation-nana/db/fixtures"
 	"github.com/fulltimegodev/hotel-reservation-nana/types"
 	"github.com/gofiber/fiber/v2"
@@ -25,8 +24,8 @@ func TestAdminGetBookings(t *testing.T) {
 		room      = fixtures.AddRoom(tdb.store, "King Size", true, 99.99, hotel.ID)
 		booking   = fixtures.AddBooking(tdb.store, user.ID, room.ID, time.Now(), time.Now().AddDate(0, 0, 2), 3)
 
-		app            = fiber.New()
-		admin          = app.Group("/", middleware.JWTAuthentication(tdb.store.User), middleware.AdminAuth)
+		app            = fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
+		admin          = app.Group("/", JWTAuthentication(tdb.store.User), AdminAuth)
 		bookingHandler = NewBookingHandler(tdb.store)
 	)
 
@@ -73,8 +72,8 @@ func TestAdminGetBookings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		t.Fatalf("expected non %d responses but got %d", http.StatusOK, resp.StatusCode)
+	if resp.StatusCode != ErrUnAuthorized().Code {
+		t.Fatalf("expected status unauthorized %d responses but got %d", ErrUnAuthorized().Code, resp.StatusCode)
 	}
 }
 
@@ -90,7 +89,7 @@ func TestUserGetBooking(t *testing.T) {
 		booking     = fixtures.AddBooking(tdb.store, user.ID, room.ID, time.Now(), time.Now().AddDate(0, 0, 2), 3)
 
 		app            = fiber.New()
-		route          = app.Group("/", middleware.JWTAuthentication(tdb.store.User))
+		route          = app.Group("/", JWTAuthentication(tdb.store.User))
 		bookingHandler = NewBookingHandler(tdb.store)
 	)
 
