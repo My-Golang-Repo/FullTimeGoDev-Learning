@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"testing"
 )
 
@@ -15,13 +17,14 @@ type testdb struct {
 }
 
 func (tdb *testdb) teardown(t *testing.T) {
-	if err := tdb.client.Database(db.DBNAME).Drop(context.Background()); err != nil {
+	if err := tdb.client.Database(os.Getenv(db.MongoDBNameEnvName)).Drop(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func setup(t *testing.T) *testdb {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
+	mongoEndpointTest := os.Getenv("MONGO_DB_URL_TEST")
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoEndpointTest))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,5 +39,11 @@ func setup(t *testing.T) *testdb {
 			Room:    db.NewMongoRoomStore(client, hotelStore),
 			Booking: db.NewMongoBookingStore(client),
 		},
+	}
+}
+
+func init() {
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Fatal(err)
 	}
 }
