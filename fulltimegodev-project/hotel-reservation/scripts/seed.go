@@ -7,21 +7,32 @@ import (
 	"github.com/fulltimegodev/hotel-reservation-nana/db"
 	"github.com/fulltimegodev/hotel-reservation-nana/db/fixtures"
 	"github.com/go-faker/faker/v4"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 )
 
 func main() {
-	ctx := context.Background()
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
+
+	var (
+		mongoDBEndpoint = os.Getenv("MONGO_DB_URL")
+		mongoDBName     = os.Getenv("MONGO_DB_NAME")
+		ctx             = context.Background()
+	)
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoDBEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := client.Database(db.DBNAME).Drop(ctx); err != nil {
+	if err := client.Database(mongoDBName).Drop(ctx); err != nil {
 		log.Fatal(err)
 	}
 
