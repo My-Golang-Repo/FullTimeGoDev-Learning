@@ -49,6 +49,6 @@ func (dr *DataReceiver) wsReceiverLoop() {
 			continue
 		}
 		fmt.Printf("received OBU data [%d] :: <lat %.2f :: long %.2f> \n", data.OBUID, data.Lat, data.Long)
-		dr.msgch <- data
+		//dr.msgch <- data
 	}
 }
