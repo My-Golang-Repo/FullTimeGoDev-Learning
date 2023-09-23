@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PorcoGalliard/truck-toll-calculator/types"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 )
 
-const kafkaTopic = "obudata"
+var kafkaTopic = "obudata"
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -22,22 +23,13 @@ type DataReceiver struct {
 	prod  *kafka.Producer
 }
 
-func NewDataReceiver() *DataReceiver {
-	return &DataReceiver{
-		msgch: make(chan types.OBUdata, 128),
-	}
-}
-
-func main() {
-
+func NewDataReceiver() (*DataReceiver, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	defer p.Close()
-
 	// Delivery report handler for produced messages
+	// Start another goroutine to check if we have delivered the data
 	go func() {
 		for e := range p.Events() {
 			switch ev := e.(type) {
@@ -51,21 +43,33 @@ func main() {
 		}
 	}()
 
-	// Produce messages to topic (asynchronously)
-	topic := kafkaTopic
-	for _, word := range []string{"Welcome", "to", "the", "Confluent", "Kafka", "Golang", "client"} {
-		p.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(word),
-		}, nil)
+	return &DataReceiver{
+		msgch: make(chan types.OBUdata, 128),
+		prod:  p,
+	}, nil
+}
+
+func main() {
+	recv, err := NewDataReceiver()
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	// Wait for message deliveries before shutting down
-	p.Flush(15 * 1000)
-
-	recv := NewDataReceiver()
 	http.HandleFunc("/ws", recv.handleWS)
 	http.ListenAndServe(":30000", nil)
+}
+
+func (dr *DataReceiver) produceData(data types.OBUdata) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	err = dr.prod.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &kafkaTopic, Partition: kafka.PartitionAny},
+		Value:          b,
+	}, nil)
+
+	return nil
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +90,8 @@ func (dr *DataReceiver) wsReceiverLoop() {
 			fmt.Println("read error: ", err)
 			continue
 		}
-		fmt.Printf("received OBU data [%d] :: <lat %.2f :: long %.2f> \n", data.OBUID, data.Lat, data.Long)
-		//dr.msgch <- data
+		if err := dr.produceData(data); err != nil {
+			fmt.Println("kafka produce error", err)
+		}
 	}
 }
