@@ -8,8 +8,6 @@ import (
 	"net/http"
 )
 
-var kafkaTopic = "obudata"
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -22,11 +20,18 @@ type DataReceiver struct {
 }
 
 func NewDataReceiver() (*DataReceiver, error) {
-	p, err := NewKafkaProducer()
+	var (
+		p          DataProducer
+		err        error
+		kafkaTopic = "obuData"
+	)
+
+	p, err = NewKafkaProducer(kafkaTopic)
 	if err != nil {
 		return nil, err
 	}
 
+	p = NewLogMiddleware(p)
 	return &DataReceiver{
 		msgch: make(chan types.OBUdata, 128),
 		prod:  p,
