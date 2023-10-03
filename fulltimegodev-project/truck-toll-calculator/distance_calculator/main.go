@@ -15,6 +15,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	svc = NewLogMiddleware(svc)
+
 	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, svc)
 	if err != nil {
 		log.Fatal(err)
