@@ -1,8 +1,14 @@
 package main
 
-import "log"
+import (
+	"github.com/PorcoGalliard/truck-toll-calculator/aggregator/client"
+	"log"
+)
 
-const kafkaTopic = "obuData"
+const (
+	kafkaTopic         = "obuData"
+	aggregatorEndpoint = "http://localhost:3000/aggregate"
+)
 
 func main() {
 	var (
@@ -17,7 +23,7 @@ func main() {
 
 	svc = NewLogMiddleware(svc)
 
-	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, svc)
+	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, svc, client.NewClient(aggregatorEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}
