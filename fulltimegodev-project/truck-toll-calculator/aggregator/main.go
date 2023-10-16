@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/PorcoGalliard/truck-toll-calculator/types"
 	"net/http"
+	"strconv"
 )
 
 func main() {
@@ -24,7 +25,31 @@ func main() {
 func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	fmt.Println("HTTP Transport running on port", listenAddr)
 	http.HandleFunc("/aggregate", handleAggregate(svc))
+	http.HandleFunc("/invoice", handleGetInvoice(svc))
 	http.ListenAndServe(listenAddr, nil)
+}
+
+func handleGetInvoice(svc Aggregator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		values, ok := r.URL.Query()["obu"]
+		if !ok {
+			WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "missing OBU ID"})
+			return
+		}
+		obuID, err := strconv.Atoi(values[0])
+		if err != nil {
+			WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid OBU ID"})
+			return
+		}
+
+		invoice, err := svc.CalculateInvoice(obuID)
+		if err != nil {
+			WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, invoice)
+	}
 }
 
 func handleAggregate(svc Aggregator) http.HandlerFunc {
