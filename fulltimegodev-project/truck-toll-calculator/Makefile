@@ -14,4 +14,7 @@ agg:
 	@go build -o bin/agg ./aggregator
 	@./bin/agg
 
-.PHONY : obu, invoicer
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative types/ptypes.proto
+
+.PHONY : obu invoicer
