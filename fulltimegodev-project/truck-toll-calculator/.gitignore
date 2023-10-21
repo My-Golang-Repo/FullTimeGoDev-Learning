@@ -1,3 +1,6 @@
 .idea
 go.mod
 bin
+go.mod
+go.sum
+../../.idea/vcs.xml
