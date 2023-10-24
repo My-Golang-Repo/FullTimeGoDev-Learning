@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/PorcoGalliard/GreenLight-Movie-API/internal/data"
 	"net/http"
+	"time"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -15,5 +17,20 @@ func (app *application) showMovieDetailsHandler(w http.ResponseWriter, r *http.R
 		http.NotFound(w, r)
 		return
 	}
-	fmt.Fprintf(w, "show the details of the movie with id %d\n", id)
+
+	movie := data.Movie{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Title:     "Casablanca",
+		Year:      2021,
+		Runtime:   102,
+		Genres:    []string{"romance", "action"},
+		Version:   1,
+	}
+
+	if err := app.writeJSON(w, http.StatusOK, movie, nil); err != nil {
+		app.logger.Print(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+	}
+
 }
