@@ -10,11 +10,7 @@ func (app *application) routes() *httprouter.Router {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movies:id", app.showMovieDetail)
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieDetailsHandler)
 
 	return router
-}
-
-func main() {
-
 }
