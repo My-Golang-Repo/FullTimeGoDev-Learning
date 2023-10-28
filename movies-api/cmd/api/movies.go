@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/PorcoGalliard/GreenLight-Movie-API/internal/data"
 	"net/http"
@@ -16,8 +15,9 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Genres  []string `json:"genres"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(input); err != nil {
+	if err := app.readJSON(w, r, &input); err != nil {
 		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	fmt.Fprintf(w, "%+v\n", input)
